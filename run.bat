@@ -1,0 +1,1 @@
+java --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.desktop/sun.awt=ALL-UNNAMED --add-opens java.desktop/sun.java2d=ALL-UNNAMED --add-opens java.desktop/sun.awt.windows=ALL-UNNAMED -Dsun.java2d.d3d=false -Dsun.java2d.uiScale=1 a2.Code

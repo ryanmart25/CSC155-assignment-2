@@ -1,1 +1,1 @@
-javac a2/Code.java
+javac -d out a2/Code.java

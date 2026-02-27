@@ -1,17 +1,8 @@
 #version 430
-
+in vec4 varyingColor;
 out vec4 color;
-layout (location = 0) in vec4 varyingcolor; // receive gradient colors
-
-uniform vec4 invariantColor;
-uniform bool useGradient;
-
+uniform mat4 mv_matrix;
+uniform mat4 p_matrix;
 void main(void)
-{
-    if(useGradient){
-        color = varyingcolor;
-    }else{
-        color = invariantColor;
-    }
-
+{ color = varyingColor;
 }

@@ -10,6 +10,8 @@ import java.nio.FloatBuffer;
 
 import com.jogamp.common.nio.Buffers;
 import org.joml.Matrix4f;
+import org.joml.Vector2f;
+import org.joml.Vector3f;
 
 public class Code extends JFrame implements  GLEventListener {
   private static final int VBO_COUNT = 8;
@@ -25,7 +27,7 @@ public class Code extends JFrame implements  GLEventListener {
   private float cubeLocX, cubeLocY, cubeLocZ;
   private float pyrLocX, pyrLocY, pyrLocZ;
   private float rodLocX, rodLocY, rodLocZ;
-
+  private float icoLocX, icoLocY, icoLocZ;
   // allocate variables for display() function
   private FloatBuffer vals = Buffers.newDirectFloatBuffer(16);  // buffer for transfering matrix to uniform
   private Matrix4f pMat = new Matrix4f();  // perspective matrix
@@ -50,6 +52,8 @@ public class Code extends JFrame implements  GLEventListener {
     myCanvas = new GLCanvas();
     myCanvas.addGLEventListener(this);
     this.add(myCanvas);
+    this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+    this.setExtendedState(JFrame.MAXIMIZED_BOTH);
     this.setVisible(true);
     Animator animator = new Animator(myCanvas);
     animator.start();
@@ -103,17 +107,65 @@ public class Code extends JFrame implements  GLEventListener {
     gl.glDrawArrays(GL_TRIANGLES, 0, 18);
 
     // draw rod
+    // define position, rotation of model and camera viewpoint
     mMat.identity();
     mMat.translation(rodLocX, rodLocY, rodLocZ);
     mMat.rotateXYZ(0.25f * (float) tf, 0, 0);
     mvMat.identity();
     mvMat.mul(vMat);
     mvMat.mul(mMat);
+    // feed MV matrix into glsl
     gl.glUniformMatrix4fv(mvLoc, 1, false, mvMat.get(vals));
     gl.glUniformMatrix4fv(pLoc, 1, false, pMat.get(vals));
-    // left here
+
+    // assert context: we're targeting to the Rod's vertex VBO now
+    gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[ROD_VERTEX_VBO]);
+    gl.glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
+
+    gl.glEnableVertexAttribArray(VERTEX_LAYOUT);
+    // activate and feed texture for the rod
+    gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[ROD_TEXTURE_VBO]);
+    gl.glVertexAttribPointer(1, 2, GL_FLOAT, false, 0, 0);
+    gl.glEnableVertexAttribArray(TEXTURE_LAYOUT);
+
+    gl.glActiveTexture(GL_TEXTURE0);
+    gl.glBindTexture(GL_TEXTURE_2D, rustyTexture);
 
 
+    gl.glEnable((GL_DEPTH_TEST));
+    gl.glDepthFunc(GL_LEQUAL);
+
+    gl.glDrawArrays(GL_TRIANGLES, 0, 36);
+
+    // draw icosahedron
+    // place at origin, do not rotate
+    mMat.identity();
+    mMat.translation(icoLocX, icoLocY, icoLocZ);
+    mMat.rotateXYZ(0.25f, 0.5f, 0);
+    mvMat.identity();
+    mvMat.mul(vMat);
+    mvMat.mul(mMat);
+
+    // feed MV matrix into glsl
+    gl.glUniformMatrix4fv(mvLoc, 1, false, mvMat.get(vals));
+    gl.glUniformMatrix4fv(pLoc, 1, false, pMat.get(vals));
+
+    // asset context: we're targeting the icosahedron's vertex VBO now.
+    gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[ICO_VERTEX_VBO]);
+    gl.glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
+
+    gl.glEnableVertexAttribArray(VERTEX_LAYOUT);
+    // activate and feed textures for teh icosahedron
+    gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[ICO_TEXTURE_VBO]);
+    gl.glVertexAttribPointer(1, 2, GL_FLOAT, false, 0, 0);
+    gl.glEnableVertexAttribArray(TEXTURE_LAYOUT);
+    gl.glActiveTexture(GL_TEXTURE0);
+    gl.glBindTexture(GL_TEXTURE_2D, noiseTexture);
+
+    gl.glEnable(GL_DEPTH_TEST);
+    gl.glDepthFunc(GL_LEQUAL);
+
+    gl.glDrawArrays(GL_TRIANGLES, 0, icosahedron.getNumVertices());
   }
 
   public void init(GLAutoDrawable drawable) // function copied from tumbling cube
@@ -124,10 +176,11 @@ public class Code extends JFrame implements  GLEventListener {
     // teh more shiny metal texture is from: <a href="https://www.freepik.com/free-photo/grunge-scratched-brushed-metal-background_21551115.htm#fromView=search&page=1&position=4&uuid=485ba75c-be1d-4557-be65-bcba1513bbcf&query=Metal+texture">Image by kjpargeter on Freepik</a>
     setupVertices();
     setupTextures();
-    cameraX = 0.0f; cameraY = 0.0f; cameraZ = 8.0f;
+    cameraX = 0.0f; cameraY = 0.0f; cameraZ = 12.0f;
     cubeLocX = 0.0f; cubeLocY = -2.0f; cubeLocZ = 0.0f;
-    rodLocX = 0.0f;rodLocY = 0.0f; rodLocZ = 0.0f;
-    pyrLocX = 0.3f; pyrLocY = 0.8f; pyrLocZ = 1.0f;
+    rodLocX = -12.0f;rodLocY = 0.0f; rodLocZ = 0.0f;
+    pyrLocX = 5.3f; pyrLocY = 0.8f; pyrLocZ = 1.0f;
+    icoLocX = 0.0f; icoLocY = 0.0f; icoLocZ = 0.0f;
   }
 
   private void setupTextures() {
@@ -144,9 +197,7 @@ public class Code extends JFrame implements  GLEventListener {
                     0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f };
 
     // bind and load
-    gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[PYRAMID_TEXTURE_VBO]);
-    FloatBuffer pTexBuf = Buffers.newDirectFloatBuffer(pyrTextureCoordinates);
-    gl.glBufferData(GL_ARRAY_BUFFER, pTexBuf.limit()*4, pTexBuf, GL_STATIC_DRAW);
+
     // setup cube texture coordinates
     // define
     float[] cubeTextureCoordinates =
@@ -169,11 +220,50 @@ public class Code extends JFrame implements  GLEventListener {
                     0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f,
                     1.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f
             };
+    float[] rodTextureCoordinates = {
+
+            // front face
+            0.0f,0.0f, 1.0f,0.0f, 1.0f,1.0f,
+            0.0f,0.0f, 1.0f,1.0f, 0.0f,1.0f,
+
+            // back face
+            0.0f,0.0f, 1.0f,1.0f, 1.0f,0.0f,
+            0.0f,0.0f, 0.0f,1.0f, 1.0f,1.0f,
+
+            // left face
+            0.0f,0.0f, 1.0f,0.0f, 1.0f,1.0f,
+            0.0f,0.0f, 1.0f,1.0f, 0.0f,1.0f,
+
+            // right face
+            0.0f,0.0f, 1.0f,1.0f, 1.0f,0.0f,
+            0.0f,0.0f, 0.0f,1.0f, 1.0f,1.0f,
+
+            // top face
+            0.0f,0.0f, 1.0f,0.0f, 1.0f,1.0f,
+            0.0f,0.0f, 1.0f,1.0f, 0.0f,1.0f,
+
+            // bottom face
+            0.0f,0.0f, 1.0f,1.0f, 0.0f,1.0f,
+            0.0f,0.0f, 1.0f,0.0f, 1.0f,1.0f
+    };
     // bind and load
     gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[CUBE_TEXTURE_VBO]);
     FloatBuffer cubeTexBuf = Buffers.newDirectFloatBuffer(cubeTextureCoordinates);
     gl.glBufferData(GL_ARRAY_BUFFER, cubeTexBuf.limit()*4, cubeTexBuf, GL_STATIC_DRAW);
-
+    // bind and load pyramid texture coordinates
+    gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[PYRAMID_TEXTURE_VBO]);
+    FloatBuffer pTexBuf = Buffers.newDirectFloatBuffer(pyrTextureCoordinates);
+    gl.glBufferData(GL_ARRAY_BUFFER, pTexBuf.limit()*4, pTexBuf, GL_STATIC_DRAW);
+    // setup rod texture coordinates
+    gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[ROD_TEXTURE_VBO]);
+    FloatBuffer rodTexBuf = Buffers.newDirectFloatBuffer(rodTextureCoordinates);
+    gl.glBufferData(GL_ARRAY_BUFFER, rodTexBuf.limit()*4, rodTexBuf, GL_STATIC_DRAW);
+    // setup icosahedron texture coordimates
+    gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[ICO_TEXTURE_VBO]);
+    FloatBuffer icoTexBuf = Buffers.newDirectFloatBuffer(icosahedron.getTexCoords().length * 2);
+    unpack(icosahedron.getTexCoords(), icoTexBuf);
+    icoTexBuf.flip();
+    gl.glBufferData(GL_ARRAY_BUFFER, icoTexBuf.limit()*4, icoTexBuf, GL_STATIC_DRAW);
   }
 
   private void setupVertices()
@@ -275,11 +365,23 @@ public class Code extends JFrame implements  GLEventListener {
     // bind and feed in icosahedron positions
     gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[ICO_VERTEX_VBO]);
     // okay but how do i unpack the Vector3f into a flat float array? iterate manually? Surely he expected a better way?
-
-    FloatBuffer icoVertBuf = Buffers.newDirectFloatBuffer();
+    FloatBuffer icoVertBuf = Buffers.newDirectFloatBuffer(icosahedron.getNumVertices() * 3);
+    unpack(icosahedron.getVertices(), icoVertBuf);
+    icoVertBuf.flip();
+    gl.glBufferData(GL_ARRAY_BUFFER, icoVertBuf.limit()*4, icoVertBuf, GL_STATIC_DRAW);
 
   }
-
+  private void unpack(Vector3f[] vectorArray, FloatBuffer buffer){
+    // unpacks an array of vectors into a float buffer
+    for (Vector3f vector : vectorArray){
+      vector.get(buffer);
+    }
+  }
+  private void unpack(Vector2f[] vectorArray, FloatBuffer buffer){
+    for (Vector2f vector: vectorArray){
+      vector.get(buffer);
+    }
+  }
   public static void main(String[] args) { new Code(); }
   public void reshape(GLAutoDrawable drawable, int x, int y, int width, int height) {}
   public void dispose(GLAutoDrawable drawable) {}

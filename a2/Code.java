@@ -12,10 +12,15 @@ import com.jogamp.common.nio.Buffers;
 import org.joml.Matrix4f;
 
 public class Code extends JFrame implements  GLEventListener {
+  private static final int VBO_COUNT = 6;
+  private static final int CUBE_VERTEX_VBO = 0, CUBE_TEXTURE_VBO = 1, PYRAMID_VERTEX_VBO = 2, PYRAMID_TEXTURE_VBO = 3, ROD_VERTEX_VBO = 4, ROD_TEXTURE_VBO = 5;
+  private static final int VERTEX_LAYOUT = 0, TEXTURE_LAYOUT = 1;
+  private static final int SAMPLER_LAYOUT = 0;
   private GLCanvas myCanvas;
   private int renderingProgram;
   private int vao[] = new int[1];
-  private int vbo[] = new int[4];
+  private int vbo[] = new int[VBO_COUNT];
+  // VBO layout: cube vert, cube tex, pyramid vert, pyramid tex, rod vert, rod tex
   private float cameraX, cameraY, cameraZ;
   private float cubeLocX, cubeLocY, cubeLocZ;
   private float pyrLocX, pyrLocY, pyrLocZ;
@@ -34,6 +39,7 @@ public class Code extends JFrame implements  GLEventListener {
   private double elapsedTime;
   private int metalTexture;
   private int noiseTexture;
+  private int rustyTexture;
   public Code()
   {	setTitle("Chapter 4 - program 1c");
     setSize(600, 600);
@@ -46,7 +52,8 @@ public class Code extends JFrame implements  GLEventListener {
   }
 
   public void display(GLAutoDrawable drawable)
-  {	GL4 gl = (GL4) GLContext.getCurrentGL();
+  {
+    GL4 gl = (GL4) GLContext.getCurrentGL();
     gl.glClear(GL_DEPTH_BUFFER_BIT);
     gl.glClear(GL_COLOR_BUFFER_BIT);
 
@@ -91,7 +98,16 @@ public class Code extends JFrame implements  GLEventListener {
 
     gl.glDrawArrays(GL_TRIANGLES, 0, 18);
 
-
+    // draw rod
+    mMat.identity();
+    mMat.translation(rodLocX, rodLocY, rodLocZ);
+    mMat.rotateXYZ(0.25f * (float) tf, 0, 0);
+    mvMat.identity();
+    mvMat.mul(vMat);
+    mvMat.mul(mMat);
+    gl.glUniformMatrix4fv(mvLoc, 1, false, mvMat.get(vals));
+    gl.glUniformMatrix4fv(pLoc, 1, false, pMat.get(vals));
+    // left here
 
 
   }
@@ -112,17 +128,21 @@ public class Code extends JFrame implements  GLEventListener {
 
   private void setupTextures() {
     GL4 gl = (GL4) GLContext.getCurrentGL();
-
+    noiseTexture = Utils.loadTexture("MyTexture.png");
+    metalTexture = Utils.loadTexture("grunge-scratched-brushed-metal-background.jpg");
+    rustyTexture = Utils.loadTexture("empty-brown-rusty-stone-metal-surface-texture.jpg");
     float[] pyrTextureCoordinates =
             { 0.0f, 0.0f, 1.0f, 0.0f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.5f, 1.0f, // top and right faces
                     0.0f, 0.0f, 1.0f, 0.0f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.5f, 1.0f, // back and left faces
                     0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f };
 
 
-    metalTexture = Utils.loadTexture("grunge-scratched-brushed-metal-background.jpg");
     gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[3]);
     FloatBuffer pTexBuf = Buffers.newDirectFloatBuffer(pyrTextureCoordinates);
     gl.glBufferData(GL_ARRAY_BUFFER, pTexBuf.limit()*4, pTexBuf, GL_STATIC_DRAW);
+
+
+
   }
 
   private void setupVertices()
@@ -141,6 +161,26 @@ public class Code extends JFrame implements  GLEventListener {
                     -1.0f,  1.0f, -1.0f, 1.0f,  1.0f, -1.0f, 1.0f,  1.0f,  1.0f,
                     1.0f,  1.0f,  1.0f, -1.0f,  1.0f,  1.0f, -1.0f,  1.0f, -1.0f
             };
+    float[] cubeTextureCoordinates =
+            {
+                    0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+                    1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+
+                    0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,
+                    1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+
+                    1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f,
+                    0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
+
+                    1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f,
+                    0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
+
+                    0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+                    1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+
+                    0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f,
+                    1.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f
+            };
     float[ ] pyramidPositions =
             { -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f, 0.0f, 1.0f, 0.0f, // front face
                     1.0f, -1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 0.0f, 1.0f, 0.0f, // right face
@@ -151,53 +191,53 @@ public class Code extends JFrame implements  GLEventListener {
             }; // coordinates taken from book
     float[] rodPositions = {
 
-            -0.05f, -0.5f,  0.05f,
-            0.05f, -0.5f,  0.05f,
-            0.05f,  0.5f,  0.05f,
+            -0.25f, -2.0f,  0.25f,
+            0.25f, -2.0f,  0.25f,
+            0.25f,  2.0f,  0.25f,
 
-            -0.05f, -0.5f,  0.05f,
-            0.05f,  0.5f,  0.05f,
-            -0.05f,  0.5f,  0.05f,
+            -0.25f, -2.0f,  0.25f,
+            0.25f,  2.0f,  0.25f,
+            -0.25f,  2.0f,  0.25f,
 
-            -0.05f, -0.5f, -0.05f,
-            0.05f,  0.5f, -0.05f,
-            0.05f, -0.5f, -0.05f,
+            -0.25f, -2.0f, -0.25f,
+            0.25f,  2.0f, -0.25f,
+            0.25f, -2.0f, -0.25f,
 
-            -0.05f, -0.5f, -0.05f,
-            -0.05f,  0.5f, -0.05f,
-            0.05f,  0.5f, -0.05f,
+            -0.25f, -2.0f, -0.25f,
+            -0.25f,  2.0f, -0.25f,
+            0.25f,  2.0f, -0.25f,
 
-            -0.05f, -0.5f, -0.05f,
-            -0.05f, -0.5f,  0.05f,
-            -0.05f,  0.5f,  0.05f,
+            -0.25f, -2.0f, -0.25f,
+            -0.25f, -2.0f,  0.25f,
+            -0.25f,  2.0f,  0.25f,
 
-            -0.05f, -0.5f, -0.05f,
-            -0.05f,  0.5f,  0.05f,
-            -0.05f,  0.5f, -0.05f,
+            -0.25f, -2.0f, -0.25f,
+            -0.25f,  2.0f,  0.25f,
+            -0.25f,  2.0f, -0.25f,
 
-            0.05f, -0.5f, -0.05f,
-            0.05f,  0.5f,  0.05f,
-            0.05f, -0.5f,  0.05f,
+            0.25f, -2.0f, -0.25f,
+            0.25f,  2.0f,  0.25f,
+            0.25f, -2.0f,  0.25f,
 
-            0.05f, -0.5f, -0.05f,
-            0.05f,  0.5f, -0.05f,
-            0.05f,  0.5f,  0.05f,
+            0.25f, -2.0f, -0.25f,
+            0.25f,  2.0f, -0.25f,
+            0.25f,  2.0f,  0.25f,
 
-            -0.05f,  0.5f, -0.05f,
-            -0.05f,  0.5f,  0.05f,
-            0.05f,  0.5f,  0.05f,
+            -0.25f,  2.0f, -0.25f,
+            -0.25f,  2.0f,  0.25f,
+            0.25f,  2.0f,  0.25f,
 
-            -0.05f,  0.5f, -0.05f,
-            0.05f,  0.5f,  0.05f,
-            0.05f,  0.5f, -0.05f,
+            -0.25f,  2.0f, -0.25f,
+            0.25f,  2.0f,  0.25f,
+            0.25f,  2.0f, -0.25f,
 
-            -0.05f, -0.5f, -0.05f,
-            0.05f, -0.5f,  0.05f,
-            -0.05f, -0.5f,  0.05f,
+            -0.25f, -2.0f, -0.25f,
+            0.25f, -2.0f,  0.25f,
+            -0.25f, -2.0f,  0.25f,
 
-            -0.05f, -0.5f, -0.05f,
-            0.05f, -0.5f, -0.05f,
-            0.05f, -0.5f,  0.05f
+            -0.25f, -2.0f, -0.25f,
+            0.25f, -2.0f, -0.25f,
+            0.25f, -2.0f,  0.25f
     };
 
     gl.glGenVertexArrays(vao.length, vao, 0);

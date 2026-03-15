@@ -12,15 +12,15 @@ import com.jogamp.common.nio.Buffers;
 import org.joml.Matrix4f;
 
 public class Code extends JFrame implements  GLEventListener {
-  private static final int VBO_COUNT = 6;
-  private static final int CUBE_VERTEX_VBO = 0, CUBE_TEXTURE_VBO = 1, PYRAMID_VERTEX_VBO = 2, PYRAMID_TEXTURE_VBO = 3, ROD_VERTEX_VBO = 4, ROD_TEXTURE_VBO = 5;
+  private static final int VBO_COUNT = 8;
+  private static final int CUBE_VERTEX_VBO = 0, CUBE_TEXTURE_VBO = 1, PYRAMID_VERTEX_VBO = 2, PYRAMID_TEXTURE_VBO = 3, ROD_VERTEX_VBO = 4, ROD_TEXTURE_VBO = 5, ICO_VERTEX_VBO = 6, ICO_TEXTURE_VBO = 7;
   private static final int VERTEX_LAYOUT = 0, TEXTURE_LAYOUT = 1;
   private static final int SAMPLER_LAYOUT = 0;
   private GLCanvas myCanvas;
   private int renderingProgram;
   private int vao[] = new int[1];
   private int vbo[] = new int[VBO_COUNT];
-  // VBO layout: cube vert, cube tex, pyramid vert, pyramid tex, rod vert, rod tex
+  // VBO layout: cube vert, cube tex, pyramid vert, pyramid tex, rod vert, rod tex, icosahedron vert, icosahedron tex
   private float cameraX, cameraY, cameraZ;
   private float cubeLocX, cubeLocY, cubeLocZ;
   private float pyrLocX, pyrLocY, pyrLocZ;
@@ -37,9 +37,13 @@ public class Code extends JFrame implements  GLEventListener {
   private double tf;
   private double startTime;
   private double elapsedTime;
+  // textures
   private int metalTexture;
-  private int noiseTexture;
+  private int noiseTexture; // made by me
   private int rustyTexture;
+
+  // imported models (code from textbook)
+  private final ImportedModel icosahedron = new ImportedModel("icosahedron.obj");
   public Code()
   {	setTitle("Chapter 4 - program 1c");
     setSize(600, 600);
@@ -79,14 +83,14 @@ public class Code extends JFrame implements  GLEventListener {
     mvMat.mul(mMat);
     gl.glUniformMatrix4fv(mvLoc, 1, false, mvMat.get(vals));
     gl.glUniformMatrix4fv(pLoc, 1, false, pMat.get(vals));
-    gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
+    gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[PYRAMID_VERTEX_VBO]);
     gl.glVertexAttribPointer(0,3,GL_FLOAT, false, 0,0);
-    gl.glEnableVertexAttribArray(0);
+    gl.glEnableVertexAttribArray(VERTEX_LAYOUT);
 
     // active buffer one for texture coords
-    gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[3]);
+    gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[PYRAMID_TEXTURE_VBO]);
     gl.glVertexAttribPointer(1,2,GL_FLOAT,false,  0,0);
-    gl.glEnableVertexAttribArray(1);
+    gl.glEnableVertexAttribArray(TEXTURE_LAYOUT);
 
     // active tecture unit zero and bind to the metal texture object
     gl.glActiveTexture(GL_TEXTURE0);
@@ -131,36 +135,20 @@ public class Code extends JFrame implements  GLEventListener {
     noiseTexture = Utils.loadTexture("MyTexture.png");
     metalTexture = Utils.loadTexture("grunge-scratched-brushed-metal-background.jpg");
     rustyTexture = Utils.loadTexture("empty-brown-rusty-stone-metal-surface-texture.jpg");
+    // setup pyramid texture coordinates
+
+    // define
     float[] pyrTextureCoordinates =
             { 0.0f, 0.0f, 1.0f, 0.0f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.5f, 1.0f, // top and right faces
                     0.0f, 0.0f, 1.0f, 0.0f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.5f, 1.0f, // back and left faces
                     0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f };
 
-
-    gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[3]);
+    // bind and load
+    gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[PYRAMID_TEXTURE_VBO]);
     FloatBuffer pTexBuf = Buffers.newDirectFloatBuffer(pyrTextureCoordinates);
     gl.glBufferData(GL_ARRAY_BUFFER, pTexBuf.limit()*4, pTexBuf, GL_STATIC_DRAW);
-
-
-
-  }
-
-  private void setupVertices()
-  {	GL4 gl = (GL4) GLContext.getCurrentGL();
-    float[] cubeVertexPositions =
-            {	-1.0f,  1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f,
-                    1.0f, -1.0f, -1.0f, 1.0f,  1.0f, -1.0f, -1.0f,  1.0f, -1.0f,
-                    1.0f, -1.0f, -1.0f, 1.0f, -1.0f,  1.0f, 1.0f,  1.0f, -1.0f,
-                    1.0f, -1.0f,  1.0f, 1.0f,  1.0f,  1.0f, 1.0f,  1.0f, -1.0f,
-                    1.0f, -1.0f,  1.0f, -1.0f, -1.0f,  1.0f, 1.0f,  1.0f,  1.0f,
-                    -1.0f, -1.0f,  1.0f, -1.0f,  1.0f,  1.0f, 1.0f,  1.0f,  1.0f,
-                    -1.0f, -1.0f,  1.0f, -1.0f, -1.0f, -1.0f, -1.0f,  1.0f,  1.0f,
-                    -1.0f, -1.0f, -1.0f, -1.0f,  1.0f, -1.0f, -1.0f,  1.0f,  1.0f,
-                    -1.0f, -1.0f,  1.0f,  1.0f, -1.0f,  1.0f,  1.0f, -1.0f, -1.0f,
-                    1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f,  1.0f,
-                    -1.0f,  1.0f, -1.0f, 1.0f,  1.0f, -1.0f, 1.0f,  1.0f,  1.0f,
-                    1.0f,  1.0f,  1.0f, -1.0f,  1.0f,  1.0f, -1.0f,  1.0f, -1.0f
-            };
+    // setup cube texture coordinates
+    // define
     float[] cubeTextureCoordinates =
             {
                     0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
@@ -181,6 +169,30 @@ public class Code extends JFrame implements  GLEventListener {
                     0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f,
                     1.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f
             };
+    // bind and load
+    gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[CUBE_TEXTURE_VBO]);
+    FloatBuffer cubeTexBuf = Buffers.newDirectFloatBuffer(cubeTextureCoordinates);
+    gl.glBufferData(GL_ARRAY_BUFFER, cubeTexBuf.limit()*4, cubeTexBuf, GL_STATIC_DRAW);
+
+  }
+
+  private void setupVertices()
+  {	GL4 gl = (GL4) GLContext.getCurrentGL();
+    float[] cubeVertexPositions =
+            {	-1.0f,  1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f,
+                    1.0f, -1.0f, -1.0f, 1.0f,  1.0f, -1.0f, -1.0f,  1.0f, -1.0f,
+                    1.0f, -1.0f, -1.0f, 1.0f, -1.0f,  1.0f, 1.0f,  1.0f, -1.0f,
+                    1.0f, -1.0f,  1.0f, 1.0f,  1.0f,  1.0f, 1.0f,  1.0f, -1.0f,
+                    1.0f, -1.0f,  1.0f, -1.0f, -1.0f,  1.0f, 1.0f,  1.0f,  1.0f,
+                    -1.0f, -1.0f,  1.0f, -1.0f,  1.0f,  1.0f, 1.0f,  1.0f,  1.0f,
+                    -1.0f, -1.0f,  1.0f, -1.0f, -1.0f, -1.0f, -1.0f,  1.0f,  1.0f,
+                    -1.0f, -1.0f, -1.0f, -1.0f,  1.0f, -1.0f, -1.0f,  1.0f,  1.0f,
+                    -1.0f, -1.0f,  1.0f,  1.0f, -1.0f,  1.0f,  1.0f, -1.0f, -1.0f,
+                    1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f,  1.0f,
+                    -1.0f,  1.0f, -1.0f, 1.0f,  1.0f, -1.0f, 1.0f,  1.0f,  1.0f,
+                    1.0f,  1.0f,  1.0f, -1.0f,  1.0f,  1.0f, -1.0f,  1.0f, -1.0f
+            };
+
     float[ ] pyramidPositions =
             { -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f, 0.0f, 1.0f, 0.0f, // front face
                     1.0f, -1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 0.0f, 1.0f, 0.0f, // right face
@@ -246,16 +258,25 @@ public class Code extends JFrame implements  GLEventListener {
 
     // bind and feed in cube positions
 
-    gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
+    gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[CUBE_VERTEX_VBO]);
     FloatBuffer cubeVertBuf = Buffers.newDirectFloatBuffer(cubeVertexPositions);
     gl.glBufferData(GL_ARRAY_BUFFER, cubeVertBuf.limit()*4, cubeVertBuf, GL_STATIC_DRAW);
 
     // bind and feed in pyramid positions
-    gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
+    gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[PYRAMID_VERTEX_VBO]);
     FloatBuffer pyramidVertBuf = Buffers.newDirectFloatBuffer(pyramidPositions);
     gl.glBufferData(GL_ARRAY_BUFFER, pyramidVertBuf.limit() * 4, pyramidVertBuf, GL_STATIC_DRAW);
 
+    // bind and feed in rod positions
+    gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[ROD_VERTEX_VBO]);
+    FloatBuffer rodVertBuf = Buffers.newDirectFloatBuffer(rodPositions);
+    gl.glBufferData(GL_ARRAY_BUFFER, rodVertBuf.limit()*4, rodVertBuf, GL_STATIC_DRAW);
 
+    // bind and feed in icosahedron positions
+    gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[ICO_VERTEX_VBO]);
+    // okay but how do i unpack the Vector3f into a flat float array? iterate manually? Surely he expected a better way?
+
+    FloatBuffer icoVertBuf = Buffers.newDirectFloatBuffer();
 
   }
 

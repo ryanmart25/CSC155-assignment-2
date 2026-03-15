@@ -33,7 +33,7 @@ public class Code extends JFrame implements  GLEventListener {
   private double startTime;
   private double elapsedTime;
   private int metalTexture;
-
+  private int noiseTexture;
   public Code()
   {	setTitle("Chapter 4 - program 1c");
     setSize(600, 600);
@@ -151,7 +151,6 @@ public class Code extends JFrame implements  GLEventListener {
             }; // coordinates taken from book
     float[] rodPositions = {
 
-            // ===== Front face =====
             -0.05f, -0.5f,  0.05f,
             0.05f, -0.5f,  0.05f,
             0.05f,  0.5f,  0.05f,
@@ -160,7 +159,6 @@ public class Code extends JFrame implements  GLEventListener {
             0.05f,  0.5f,  0.05f,
             -0.05f,  0.5f,  0.05f,
 
-            // ===== Back face =====
             -0.05f, -0.5f, -0.05f,
             0.05f,  0.5f, -0.05f,
             0.05f, -0.5f, -0.05f,
@@ -169,7 +167,6 @@ public class Code extends JFrame implements  GLEventListener {
             -0.05f,  0.5f, -0.05f,
             0.05f,  0.5f, -0.05f,
 
-            // ===== Left face =====
             -0.05f, -0.5f, -0.05f,
             -0.05f, -0.5f,  0.05f,
             -0.05f,  0.5f,  0.05f,
@@ -178,7 +175,6 @@ public class Code extends JFrame implements  GLEventListener {
             -0.05f,  0.5f,  0.05f,
             -0.05f,  0.5f, -0.05f,
 
-            // ===== Right face =====
             0.05f, -0.5f, -0.05f,
             0.05f,  0.5f,  0.05f,
             0.05f, -0.5f,  0.05f,
@@ -187,7 +183,6 @@ public class Code extends JFrame implements  GLEventListener {
             0.05f,  0.5f, -0.05f,
             0.05f,  0.5f,  0.05f,
 
-            // ===== Top face =====
             -0.05f,  0.5f, -0.05f,
             -0.05f,  0.5f,  0.05f,
             0.05f,  0.5f,  0.05f,
@@ -196,7 +191,6 @@ public class Code extends JFrame implements  GLEventListener {
             0.05f,  0.5f,  0.05f,
             0.05f,  0.5f, -0.05f,
 
-            // ===== Bottom face =====
             -0.05f, -0.5f, -0.05f,
             0.05f, -0.5f,  0.05f,
             -0.05f, -0.5f,  0.05f,

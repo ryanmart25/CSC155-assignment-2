@@ -77,9 +77,33 @@ public class Code extends JFrame implements  GLEventListener {
 
     elapsedTime = System.currentTimeMillis() - startTime;
     tf = elapsedTime/1000.0;  // time factor
+    // draw cube
+
     mMat.identity();
+    mMat.translation(cubeLocX * (float) tf, cubeLocY, cubeLocZ );
+    mMat.rotateXYZ(2.25f * (float) tf, 0.0f, 0.0f);
+    mvMat.identity();
+    mvMat.mul(vMat);
+    mvMat.mul(mMat);
+    gl.glUniformMatrix4fv(mvLoc, 1, false, mvMat.get(vals));
+    gl.glUniformMatrix4fv(pLoc, 1, false, pMat.get(vals));
+    gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[CUBE_VERTEX_VBO]);
+    gl.glVertexAttribPointer(0, 3, GL_FLOAT, false, 0,0);
+    gl.glEnableVertexAttribArray(TEXTURE_LAYOUT);
+    // bind and load textures
+    gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[CUBE_TEXTURE_VBO]);
+    gl.glVertexAttribPointer(1, 2, GL_FLOAT, false, 0,0);
+    gl.glEnableVertexAttribArray(TEXTURE_LAYOUT);
+    // activate texture and bind the noise texture
+    gl.glActiveTexture(GL_TEXTURE0);
+    gl.glBindTexture(GL_TEXTURE_2D, noiseTexture);
+    gl.glEnable(GL_DEPTH_TEST);
+    gl.glDepthFunc(GL_LEQUAL);
+    gl.glDrawArrays(GL_TRIANGLES, 0, 36);
+
     // draw pyramid
     // translate and feed
+    mMat.identity();
     mMat.translation(pyrLocX, pyrLocY, pyrLocZ);
     mMat.rotateXYZ(1.75f*(float)tf, 1.75f*(float)tf, 1.75f*(float)tf);
     mvMat.identity();

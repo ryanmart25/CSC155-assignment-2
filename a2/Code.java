@@ -6,6 +6,8 @@ import com.jogamp.opengl.awt.GLCanvas;
 import com.jogamp.opengl.util.*;
 
 import javax.swing.*;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.nio.FloatBuffer;
 
 import com.jogamp.common.nio.Buffers;
@@ -13,7 +15,7 @@ import org.joml.Matrix4f;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
 
-public class Code extends JFrame implements  GLEventListener {
+public class Code extends JFrame implements  GLEventListener, KeyListener {
   private static final int VBO_COUNT = 8;
   private static final int CUBE_VERTEX_VBO = 0, CUBE_TEXTURE_VBO = 1, PYRAMID_VERTEX_VBO = 2, PYRAMID_TEXTURE_VBO = 3, ROD_VERTEX_VBO = 4, ROD_TEXTURE_VBO = 5, ICO_VERTEX_VBO = 6, ICO_TEXTURE_VBO = 7;
   private static final int VERTEX_LAYOUT = 0, TEXTURE_LAYOUT = 1;
@@ -46,12 +48,13 @@ public class Code extends JFrame implements  GLEventListener {
 
 
   // imported models (code from textbook)
-  private final ImportedModel icosahedron = new ImportedModel("icosahedron.obj");
+  private final ImportedModel shuttle = new ImportedModel("shuttle.obj");
   public Code()
-  {	setTitle("Chapter 4 - program 1c");
+  {	setTitle("Assignment 2 - Ryan Martinez");
     setSize(600, 600);
     myCanvas = new GLCanvas();
     myCanvas.addGLEventListener(this);
+    myCanvas.addKeyListener(this);
     this.add(myCanvas);
     this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     this.setExtendedState(JFrame.MAXIMIZED_BOTH);
@@ -79,7 +82,35 @@ public class Code extends JFrame implements  GLEventListener {
     elapsedTime = System.currentTimeMillis() - startTime;
     tf = elapsedTime/1000.0;  // time factor
 
+    // draw shuttle
+    mMat.identity();
+    mMat.translation(icoLocX, icoLocY, icoLocZ);
+    mMat.rotateXYZ(0.25f, 0.5f, 0);
+    mMat.scale(2.0f);
+    mvMat.identity();
+    mvMat.mul(vMat);
+    mvMat.mul(mMat);
 
+    // feed MV matrix into glsl
+    gl.glUniformMatrix4fv(mvLoc, 1, false, mvMat.get(vals));
+    gl.glUniformMatrix4fv(pLoc, 1, false, pMat.get(vals));
+
+    // asset context: we're targeting the icosahedron's vertex VBO now.
+    gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[ICO_VERTEX_VBO]);
+    gl.glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
+
+    gl.glEnableVertexAttribArray(VERTEX_LAYOUT);
+    // activate and feed textures for teh icosahedron
+    gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[ICO_TEXTURE_VBO]);
+    gl.glVertexAttribPointer(1, 2, GL_FLOAT, false, 0, 0);
+    gl.glEnableVertexAttribArray(TEXTURE_LAYOUT);
+    gl.glActiveTexture(GL_TEXTURE0);
+    gl.glBindTexture(GL_TEXTURE_2D, noiseTexture);
+
+    gl.glEnable(GL_DEPTH_TEST);
+    gl.glDepthFunc(GL_LEQUAL);
+
+    gl.glDrawArrays(GL_TRIANGLES, 0, shuttle.getNumVertices());
     // draw cube
     mMat.identity();
     mMat.translation(cubeLocX * (float) tf, cubeLocY, cubeLocZ );
@@ -91,7 +122,7 @@ public class Code extends JFrame implements  GLEventListener {
     gl.glUniformMatrix4fv(pLoc, 1, false, pMat.get(vals));
     gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[CUBE_VERTEX_VBO]);
     gl.glVertexAttribPointer(0, 3, GL_FLOAT, false, 0,0);
-    gl.glEnableVertexAttribArray(TEXTURE_LAYOUT);
+    gl.glEnableVertexAttribArray(VERTEX_LAYOUT);
     // bind and load textures
     gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[CUBE_TEXTURE_VBO]);
     gl.glVertexAttribPointer(1, 2, GL_FLOAT, false, 0,0);
@@ -132,6 +163,9 @@ public class Code extends JFrame implements  GLEventListener {
 
     gl.glDrawArrays(GL_TRIANGLES, 0, 18);
 
+
+
+
     // draw rod
     // define position, rotation of model and camera viewpoint
     mMat.identity();
@@ -165,9 +199,11 @@ public class Code extends JFrame implements  GLEventListener {
 
     // draw icosahedron
     // place at origin, do not rotate
+    /*
     mMat.identity();
     mMat.translation(icoLocX, icoLocY, icoLocZ);
     mMat.rotateXYZ(0.25f, 0.5f, 0);
+    mMat.scale(2.0f);
     mvMat.identity();
     mvMat.mul(vMat);
     mvMat.mul(mMat);
@@ -191,7 +227,9 @@ public class Code extends JFrame implements  GLEventListener {
     gl.glEnable(GL_DEPTH_TEST);
     gl.glDepthFunc(GL_LEQUAL);
 
-    gl.glDrawArrays(GL_TRIANGLES, 0, icosahedron.getNumVertices());
+    gl.glDrawArrays(GL_TRIANGLES, 0, 60);
+
+     */
   }
 
   public void init(GLAutoDrawable drawable) // function copied from tumbling cube
@@ -202,11 +240,14 @@ public class Code extends JFrame implements  GLEventListener {
     // teh more shiny metal texture is from: <a href="https://www.freepik.com/free-photo/grunge-scratched-brushed-metal-background_21551115.htm#fromView=search&page=1&position=4&uuid=485ba75c-be1d-4557-be65-bcba1513bbcf&query=Metal+texture">Image by kjpargeter on Freepik</a>
     setupVertices();
     setupTextures();
+    System.out.println("ico getNumVertices(): " + shuttle.getNumVertices());
+    System.out.println("ico getVertices().length: " + shuttle.getVertices().length);
+    System.out.println("ico getTexCoords().length: " + shuttle.getTexCoords().length);
     cameraX = 0.0f; cameraY = 0.0f; cameraZ = 12.0f;
     cubeLocX = 0.0f; cubeLocY = -2.0f; cubeLocZ = 0.0f;
     rodLocX = -12.0f;rodLocY = 0.0f; rodLocZ = 0.0f;
     pyrLocX = 5.3f; pyrLocY = 0.8f; pyrLocZ = 1.0f;
-    icoLocX = 0.0f; icoLocY = 0.0f; icoLocZ = 0.0f;
+    icoLocX = -5.0f; icoLocY = 5.0f; icoLocZ = 0.0f;
   }
 
   private void setupTextures() {
@@ -286,8 +327,8 @@ public class Code extends JFrame implements  GLEventListener {
     gl.glBufferData(GL_ARRAY_BUFFER, rodTexBuf.limit()*4, rodTexBuf, GL_STATIC_DRAW);
     // setup icosahedron texture coordimates
     gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[ICO_TEXTURE_VBO]);
-    FloatBuffer icoTexBuf = Buffers.newDirectFloatBuffer(icosahedron.getTexCoords().length * 2);
-    unpack(icosahedron.getTexCoords(), icoTexBuf);
+    FloatBuffer icoTexBuf = Buffers.newDirectFloatBuffer(shuttle.getTexCoords().length * 2);
+    unpack(shuttle.getTexCoords(), icoTexBuf);
     icoTexBuf.flip();
     gl.glBufferData(GL_ARRAY_BUFFER, icoTexBuf.limit()*4, icoTexBuf, GL_STATIC_DRAW);
   }
@@ -390,8 +431,8 @@ public class Code extends JFrame implements  GLEventListener {
 
     // bind and feed in icosahedron positions
     gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[ICO_VERTEX_VBO]);
-    FloatBuffer icoVertBuf = Buffers.newDirectFloatBuffer(icosahedron.getNumVertices() * 3);
-    unpack(icosahedron.getVertices(), icoVertBuf);
+    FloatBuffer icoVertBuf = Buffers.newDirectFloatBuffer(shuttle.getNumVertices() * 3);
+    unpack(shuttle.getVertices(), icoVertBuf);
     icoVertBuf.flip();
     gl.glBufferData(GL_ARRAY_BUFFER, icoVertBuf.limit()*4, icoVertBuf, GL_STATIC_DRAW);
 
@@ -410,4 +451,34 @@ public class Code extends JFrame implements  GLEventListener {
   public static void main(String[] args) { new Code(); }
   public void reshape(GLAutoDrawable drawable, int x, int y, int width, int height) {}
   public void dispose(GLAutoDrawable drawable) {}
+
+  @Override
+  public void keyTyped(KeyEvent e) {
+
+  }
+
+  @Override
+  public void keyPressed(KeyEvent e) {
+    switch(e.getKeyCode()) {
+      case KeyEvent.VK_W -> System.out.println("Move the camera forward!");
+      case KeyEvent.VK_S -> System.out.println("Move the Camera backward!");
+      case KeyEvent.VK_A -> System.out.println("Move the camera to the left!");
+      case KeyEvent.VK_D -> System.out.println("Move the camera to the right!");
+      case KeyEvent.VK_Q -> System.out.println("Move the camera up!");
+      case KeyEvent.VK_E -> System.out.println("Move the camera down!");
+      case KeyEvent.VK_LEFT -> System.out.println("Rotate the camera to the left about the V Axis!");
+      case KeyEvent.VK_RIGHT -> System.out.println("Rotate the camera to the right about the V Axis!");
+      case KeyEvent.VK_UP -> System.out.println("Rotate the camera up about the U Axis!");
+      case KeyEvent.VK_DOWN -> System.out.println("Rotate the camera Down by the U Axis!");
+      case KeyEvent.VK_SPACE -> System.out.println("Toggle the cisibility of the world Axes!");
+        default -> {
+            return;
+        }
+    }
+  }
+
+  @Override
+  public void keyReleased(KeyEvent e) {
+
+  }
 }

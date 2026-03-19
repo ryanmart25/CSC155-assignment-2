@@ -22,6 +22,10 @@ public class Code extends JFrame implements  GLEventListener {
   private int renderingProgram;
   private int vao[] = new int[1];
   private int vbo[] = new int[VBO_COUNT];
+  // textures
+  private int metalTexture;
+  private int noiseTexture; // made by me
+  private int rustyTexture;
   // VBO layout: cube vert, cube tex, pyramid vert, pyramid tex, rod vert, rod tex, icosahedron vert, icosahedron tex
   private float cameraX, cameraY, cameraZ;
   private float cubeLocX, cubeLocY, cubeLocZ;
@@ -29,7 +33,7 @@ public class Code extends JFrame implements  GLEventListener {
   private float rodLocX, rodLocY, rodLocZ;
   private float icoLocX, icoLocY, icoLocZ;
   // allocate variables for display() function
-  private FloatBuffer vals = Buffers.newDirectFloatBuffer(16);  // buffer for transfering matrix to uniform
+  private FloatBuffer vals = Buffers.newDirectFloatBuffer(16);  // buffer for transferring matrix to uniform
   private Matrix4f pMat = new Matrix4f();  // perspective matrix
   private Matrix4f vMat = new Matrix4f();  // view matrix
   private Matrix4f mMat = new Matrix4f();  // model matrix
@@ -39,10 +43,7 @@ public class Code extends JFrame implements  GLEventListener {
   private double tf;
   private double startTime;
   private double elapsedTime;
-  // textures
-  private int metalTexture;
-  private int noiseTexture; // made by me
-  private int rustyTexture;
+
 
   // imported models (code from textbook)
   private final ImportedModel icosahedron = new ImportedModel("icosahedron.obj");
@@ -77,8 +78,9 @@ public class Code extends JFrame implements  GLEventListener {
 
     elapsedTime = System.currentTimeMillis() - startTime;
     tf = elapsedTime/1000.0;  // time factor
-    // draw cube
 
+
+    // draw cube
     mMat.identity();
     mMat.translation(cubeLocX * (float) tf, cubeLocY, cubeLocZ );
     mMat.rotateXYZ(2.25f * (float) tf, 0.0f, 0.0f);
@@ -196,7 +198,7 @@ public class Code extends JFrame implements  GLEventListener {
   {	GL4 gl = (GL4) drawable.getGL();
     startTime = System.currentTimeMillis();
     renderingProgram = Utils.createShaderProgram("shaders/vertex.glsl", "shaders/fragment.glsl");
-    // the metal texture is from: <a href="https://www.freepik.com/free-photo/empty-brown-rusty-stone-metal-surface-texture_6029183.htm">Image by denamorado on Freepik</a>
+    // the rusty metal texture is from: <a href="https://www.freepik.com/free-photo/empty-brown-rusty-stone-metal-surface-texture_6029183.htm">Image by denamorado on Freepik</a>
     // teh more shiny metal texture is from: <a href="https://www.freepik.com/free-photo/grunge-scratched-brushed-metal-background_21551115.htm#fromView=search&page=1&position=4&uuid=485ba75c-be1d-4557-be65-bcba1513bbcf&query=Metal+texture">Image by kjpargeter on Freepik</a>
     setupVertices();
     setupTextures();
@@ -270,7 +272,7 @@ public class Code extends JFrame implements  GLEventListener {
             0.0f,0.0f, 1.0f,1.0f, 0.0f,1.0f,
             0.0f,0.0f, 1.0f,0.0f, 1.0f,1.0f
     };
-    // bind and load
+    // bind and load cube texture coordinates
     gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[CUBE_TEXTURE_VBO]);
     FloatBuffer cubeTexBuf = Buffers.newDirectFloatBuffer(cubeTextureCoordinates);
     gl.glBufferData(GL_ARRAY_BUFFER, cubeTexBuf.limit()*4, cubeTexBuf, GL_STATIC_DRAW);
@@ -388,7 +390,6 @@ public class Code extends JFrame implements  GLEventListener {
 
     // bind and feed in icosahedron positions
     gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[ICO_VERTEX_VBO]);
-    // okay but how do i unpack the Vector3f into a flat float array? iterate manually? Surely he expected a better way?
     FloatBuffer icoVertBuf = Buffers.newDirectFloatBuffer(icosahedron.getNumVertices() * 3);
     unpack(icosahedron.getVertices(), icoVertBuf);
     icoVertBuf.flip();

@@ -17,7 +17,7 @@ import org.joml.Vector3f;
 
 public class Code extends JFrame implements  GLEventListener, KeyListener {
   private static final int VBO_COUNT = 8;
-  private static final int CUBE_VERTEX_VBO = 0, CUBE_TEXTURE_VBO = 1, PYRAMID_VERTEX_VBO = 2, PYRAMID_TEXTURE_VBO = 3, ROD_VERTEX_VBO = 4, ROD_TEXTURE_VBO = 5, ICO_VERTEX_VBO = 6, ICO_TEXTURE_VBO = 7;
+  private static final int CUBE_VERTEX_VBO = 0, CUBE_TEXTURE_VBO = 1, PYRAMID_VERTEX_VBO = 2, PYRAMID_TEXTURE_VBO = 3, ROD_VERTEX_VBO = 4, ROD_TEXTURE_VBO = 5, SHUTTLE_VERTEX_VBO = 6, SHUTTLE_TEXTURE_VBO = 7;
   private static final int VERTEX_LAYOUT = 0, TEXTURE_LAYOUT = 1;
   private static final int SAMPLER_LAYOUT = 0;
   private GLCanvas myCanvas;
@@ -28,12 +28,11 @@ public class Code extends JFrame implements  GLEventListener, KeyListener {
   private int metalTexture;
   private int noiseTexture; // made by me
   private int rustyTexture;
-  // VBO layout: cube vert, cube tex, pyramid vert, pyramid tex, rod vert, rod tex, icosahedron vert, icosahedron tex
-  private float cameraX, cameraY, cameraZ;
+  // VBO layout: cube vert, cube tex, pyramid vert, pyramid tex, rod vert, rod tex, shuttle vert, shuttle  tex
   private float cubeLocX, cubeLocY, cubeLocZ;
   private float pyrLocX, pyrLocY, pyrLocZ;
   private float rodLocX, rodLocY, rodLocZ;
-  private float icoLocX, icoLocY, icoLocZ;
+  private float shuttleLocX, shuttleLocY, shuttleLocZ;
   // allocate variables for display() function
   private FloatBuffer vals = Buffers.newDirectFloatBuffer(16);  // buffer for transferring matrix to uniform
   private Matrix4f pMat = new Matrix4f();  // perspective matrix
@@ -45,7 +44,7 @@ public class Code extends JFrame implements  GLEventListener, KeyListener {
   private double tf;
   private double startTime;
   private double elapsedTime;
-
+  private Camera camera;
 
   // imported models (code from textbook)
   private final ImportedModel shuttle = new ImportedModel("shuttle.obj");
@@ -77,14 +76,18 @@ public class Code extends JFrame implements  GLEventListener, KeyListener {
     aspect = (float) myCanvas.getWidth() / (float) myCanvas.getHeight();
     pMat.setPerspective((float) Math.toRadians(60.0f), aspect, 0.1f, 1000.0f);
 
-    vMat.translation(-cameraX, -cameraY, -cameraZ);
+
+    // setup camera matrices
+    Matrix4f T = new Matrix4f().translation(camera.getCameraX() * -1.0f, camera.getCameraY() * -1.0f, camera.getCameraZ() * -1.0f);
+    Matrix4f R = camera.getRotationMatrix();
+    vMat = R.mul(T);
 
     elapsedTime = System.currentTimeMillis() - startTime;
     tf = elapsedTime/1000.0;  // time factor
 
     // draw shuttle
     mMat.identity();
-    mMat.translation(icoLocX, icoLocY, icoLocZ);
+    mMat.translation(shuttleLocX, shuttleLocY, shuttleLocZ);
     mMat.rotateXYZ(0.25f, 0.5f, 0);
     mMat.scale(2.0f);
     mvMat.identity();
@@ -95,13 +98,13 @@ public class Code extends JFrame implements  GLEventListener, KeyListener {
     gl.glUniformMatrix4fv(mvLoc, 1, false, mvMat.get(vals));
     gl.glUniformMatrix4fv(pLoc, 1, false, pMat.get(vals));
 
-    // asset context: we're targeting the icosahedron's vertex VBO now.
-    gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[ICO_VERTEX_VBO]);
+    // asset context: we're targeting the shuttle's vertex VBO now.
+    gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[SHUTTLE_VERTEX_VBO]);
     gl.glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
 
     gl.glEnableVertexAttribArray(VERTEX_LAYOUT);
     // activate and feed textures for teh icosahedron
-    gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[ICO_TEXTURE_VBO]);
+    gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[SHUTTLE_TEXTURE_VBO]);
     gl.glVertexAttribPointer(1, 2, GL_FLOAT, false, 0, 0);
     gl.glEnableVertexAttribArray(TEXTURE_LAYOUT);
     gl.glActiveTexture(GL_TEXTURE0);
@@ -197,39 +200,7 @@ public class Code extends JFrame implements  GLEventListener, KeyListener {
 
     gl.glDrawArrays(GL_TRIANGLES, 0, 36);
 
-    // draw icosahedron
-    // place at origin, do not rotate
-    /*
-    mMat.identity();
-    mMat.translation(icoLocX, icoLocY, icoLocZ);
-    mMat.rotateXYZ(0.25f, 0.5f, 0);
-    mMat.scale(2.0f);
-    mvMat.identity();
-    mvMat.mul(vMat);
-    mvMat.mul(mMat);
 
-    // feed MV matrix into glsl
-    gl.glUniformMatrix4fv(mvLoc, 1, false, mvMat.get(vals));
-    gl.glUniformMatrix4fv(pLoc, 1, false, pMat.get(vals));
-
-    // asset context: we're targeting the icosahedron's vertex VBO now.
-    gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[ICO_VERTEX_VBO]);
-    gl.glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
-
-    gl.glEnableVertexAttribArray(VERTEX_LAYOUT);
-    // activate and feed textures for teh icosahedron
-    gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[ICO_TEXTURE_VBO]);
-    gl.glVertexAttribPointer(1, 2, GL_FLOAT, false, 0, 0);
-    gl.glEnableVertexAttribArray(TEXTURE_LAYOUT);
-    gl.glActiveTexture(GL_TEXTURE0);
-    gl.glBindTexture(GL_TEXTURE_2D, noiseTexture);
-
-    gl.glEnable(GL_DEPTH_TEST);
-    gl.glDepthFunc(GL_LEQUAL);
-
-    gl.glDrawArrays(GL_TRIANGLES, 0, 60);
-
-     */
   }
 
   public void init(GLAutoDrawable drawable) // function copied from tumbling cube
@@ -240,14 +211,16 @@ public class Code extends JFrame implements  GLEventListener, KeyListener {
     // teh more shiny metal texture is from: <a href="https://www.freepik.com/free-photo/grunge-scratched-brushed-metal-background_21551115.htm#fromView=search&page=1&position=4&uuid=485ba75c-be1d-4557-be65-bcba1513bbcf&query=Metal+texture">Image by kjpargeter on Freepik</a>
     setupVertices();
     setupTextures();
-    System.out.println("ico getNumVertices(): " + shuttle.getNumVertices());
-    System.out.println("ico getVertices().length: " + shuttle.getVertices().length);
-    System.out.println("ico getTexCoords().length: " + shuttle.getTexCoords().length);
-    cameraX = 0.0f; cameraY = 0.0f; cameraZ = 12.0f;
+    System.out.println("shuttle ico getNumVertices(): " + shuttle.getNumVertices());
+    System.out.println("shuttle  getVertices().length: " + shuttle.getVertices().length);
+    System.out.println("shuttle  getTexCoords().length: " + shuttle.getTexCoords().length);
+    //cameraX = 0.0f; cameraY = 0.0f; cameraZ = 12.0f;
     cubeLocX = 0.0f; cubeLocY = -2.0f; cubeLocZ = 0.0f;
     rodLocX = -12.0f;rodLocY = 0.0f; rodLocZ = 0.0f;
     pyrLocX = 5.3f; pyrLocY = 0.8f; pyrLocZ = 1.0f;
-    icoLocX = -5.0f; icoLocY = 5.0f; icoLocZ = 0.0f;
+    shuttleLocX = -5.0f; shuttleLocY = 5.0f; shuttleLocZ = 0.0f;
+
+    this.camera = new Camera(0.1f, 0.1f, 0.0f, 0.0f, 12.0f);
   }
 
   private void setupTextures() {
@@ -326,7 +299,7 @@ public class Code extends JFrame implements  GLEventListener, KeyListener {
     FloatBuffer rodTexBuf = Buffers.newDirectFloatBuffer(rodTextureCoordinates);
     gl.glBufferData(GL_ARRAY_BUFFER, rodTexBuf.limit()*4, rodTexBuf, GL_STATIC_DRAW);
     // setup icosahedron texture coordimates
-    gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[ICO_TEXTURE_VBO]);
+    gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[SHUTTLE_TEXTURE_VBO]);
     FloatBuffer icoTexBuf = Buffers.newDirectFloatBuffer(shuttle.getTexCoords().length * 2);
     unpack(shuttle.getTexCoords(), icoTexBuf);
     icoTexBuf.flip();
@@ -430,7 +403,7 @@ public class Code extends JFrame implements  GLEventListener, KeyListener {
     gl.glBufferData(GL_ARRAY_BUFFER, rodVertBuf.limit()*4, rodVertBuf, GL_STATIC_DRAW);
 
     // bind and feed in icosahedron positions
-    gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[ICO_VERTEX_VBO]);
+    gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[SHUTTLE_VERTEX_VBO]);
     FloatBuffer icoVertBuf = Buffers.newDirectFloatBuffer(shuttle.getNumVertices() * 3);
     unpack(shuttle.getVertices(), icoVertBuf);
     icoVertBuf.flip();
@@ -460,17 +433,47 @@ public class Code extends JFrame implements  GLEventListener, KeyListener {
   @Override
   public void keyPressed(KeyEvent e) {
     switch(e.getKeyCode()) {
-      case KeyEvent.VK_W -> System.out.println("Move the camera forward!");
-      case KeyEvent.VK_S -> System.out.println("Move the Camera backward!");
-      case KeyEvent.VK_A -> System.out.println("Move the camera to the left!");
-      case KeyEvent.VK_D -> System.out.println("Move the camera to the right!");
-      case KeyEvent.VK_Q -> System.out.println("Move the camera up!");
-      case KeyEvent.VK_E -> System.out.println("Move the camera down!");
-      case KeyEvent.VK_LEFT -> System.out.println("Rotate the camera to the left about the V Axis!");
-      case KeyEvent.VK_RIGHT -> System.out.println("Rotate the camera to the right about the V Axis!");
-      case KeyEvent.VK_UP -> System.out.println("Rotate the camera up about the U Axis!");
-      case KeyEvent.VK_DOWN -> System.out.println("Rotate the camera Down by the U Axis!");
-      case KeyEvent.VK_SPACE -> System.out.println("Toggle the cisibility of the world Axes!");
+      case KeyEvent.VK_W -> {
+        System.out.println("Move the camera forward!");
+        camera.moveForward();
+      }
+      case KeyEvent.VK_S -> {
+        System.out.println("Move the Camera backward!");
+        camera.moveBackward();
+      }
+      case KeyEvent.VK_A -> {
+        System.out.println("Move the camera to the left!");
+        camera.moveLeft();
+      }
+      case KeyEvent.VK_D -> {
+        System.out.println("Move the camera to the right!");
+        camera.moveRight();
+      }
+      case KeyEvent.VK_Q -> {
+        System.out.println("Move the camera up!");
+        camera.moveUp();
+      }
+      case KeyEvent.VK_E -> {
+        System.out.println("Move the camera down!");
+        camera.moveDown();
+      }
+      case KeyEvent.VK_LEFT -> {
+        System.out.println("Rotate the camera to the left about the V Axis!");
+        camera.turnLeft();
+      }
+      case KeyEvent.VK_RIGHT -> {
+        System.out.println("Rotate the camera to the right about the V Axis!");
+        camera.turnRight();
+      }
+      case KeyEvent.VK_UP -> {
+        System.out.println("Rotate the camera up about the U Axis!");
+        camera.turnUp();
+      }
+      case KeyEvent.VK_DOWN -> {
+        System.out.println("Rotate the camera Down by the U Axis!");
+        camera.turnDown();
+      }
+      case KeyEvent.VK_SPACE -> System.out.println("Toggle the visibility of the world Axes!");
         default -> {
             return;
         }

@@ -16,8 +16,8 @@ import org.joml.Vector2f;
 import org.joml.Vector3f;
 
 public class Code extends JFrame implements  GLEventListener, KeyListener {
-  private static final int VBO_COUNT = 8;
-  private static final int CUBE_VERTEX_VBO = 0, CUBE_TEXTURE_VBO = 1, PYRAMID_VERTEX_VBO = 2, PYRAMID_TEXTURE_VBO = 3, ROD_VERTEX_VBO = 4, ROD_TEXTURE_VBO = 5, SHUTTLE_VERTEX_VBO = 6, SHUTTLE_TEXTURE_VBO = 7;
+  private static final int VBO_COUNT = 9;
+  private static final int CUBE_VERTEX_VBO = 0, CUBE_TEXTURE_VBO = 1, PYRAMID_VERTEX_VBO = 2, PYRAMID_TEXTURE_VBO = 3, ROD_VERTEX_VBO = 4, ROD_TEXTURE_VBO = 5, SHUTTLE_VERTEX_VBO = 6, SHUTTLE_TEXTURE_VBO = 7, SHUTTLE_NORMALS_VBO = 8;
   private static final int VERTEX_LAYOUT = 0, TEXTURE_LAYOUT = 1;
   private static final int SAMPLER_LAYOUT = 0;
   private GLCanvas myCanvas;
@@ -28,6 +28,7 @@ public class Code extends JFrame implements  GLEventListener, KeyListener {
   private int metalTexture;
   private int noiseTexture; // made by me
   private int rustyTexture;
+  private int brickTexture;
   // VBO layout: cube vert, cube tex, pyramid vert, pyramid tex, rod vert, rod tex, shuttle vert, shuttle  tex
   private float cubeLocX, cubeLocY, cubeLocZ;
   private float pyrLocX, pyrLocY, pyrLocZ;
@@ -47,7 +48,7 @@ public class Code extends JFrame implements  GLEventListener, KeyListener {
   private Camera camera;
 
   // imported models (code from textbook)
-  private final ImportedModel shuttle = new ImportedModel("shuttle.obj");
+  private final ImportedModel shuttle  = new ImportedModel("shuttle.obj");
   public Code()
   {	setTitle("Assignment 2 - Ryan Martinez");
     setSize(600, 600);
@@ -103,7 +104,7 @@ public class Code extends JFrame implements  GLEventListener, KeyListener {
     gl.glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
 
     gl.glEnableVertexAttribArray(VERTEX_LAYOUT);
-    // activate and feed textures for teh icosahedron
+    // activate and feed textures for teh shuttle
     gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[SHUTTLE_TEXTURE_VBO]);
     gl.glVertexAttribPointer(1, 2, GL_FLOAT, false, 0, 0);
     gl.glEnableVertexAttribArray(TEXTURE_LAYOUT);
@@ -132,7 +133,7 @@ public class Code extends JFrame implements  GLEventListener, KeyListener {
     gl.glEnableVertexAttribArray(TEXTURE_LAYOUT);
     // activate texture and bind the noise texture
     gl.glActiveTexture(GL_TEXTURE0);
-    gl.glBindTexture(GL_TEXTURE_2D, noiseTexture);
+    gl.glBindTexture(GL_TEXTURE_2D, brickTexture);
     gl.glEnable(GL_DEPTH_TEST);
     gl.glDepthFunc(GL_LEQUAL);
     gl.glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -211,16 +212,14 @@ public class Code extends JFrame implements  GLEventListener, KeyListener {
     // teh more shiny metal texture is from: <a href="https://www.freepik.com/free-photo/grunge-scratched-brushed-metal-background_21551115.htm#fromView=search&page=1&position=4&uuid=485ba75c-be1d-4557-be65-bcba1513bbcf&query=Metal+texture">Image by kjpargeter on Freepik</a>
     setupVertices();
     setupTextures();
-    System.out.println("shuttle ico getNumVertices(): " + shuttle.getNumVertices());
-    System.out.println("shuttle  getVertices().length: " + shuttle.getVertices().length);
-    System.out.println("shuttle  getTexCoords().length: " + shuttle.getTexCoords().length);
+
     //cameraX = 0.0f; cameraY = 0.0f; cameraZ = 12.0f;
     cubeLocX = 0.0f; cubeLocY = -2.0f; cubeLocZ = 0.0f;
     rodLocX = -12.0f;rodLocY = 0.0f; rodLocZ = 0.0f;
     pyrLocX = 5.3f; pyrLocY = 0.8f; pyrLocZ = 1.0f;
     shuttleLocX = -5.0f; shuttleLocY = 5.0f; shuttleLocZ = 0.0f;
 
-    this.camera = new Camera(0.1f, 0.1f, 0.0f, 0.0f, 12.0f);
+    this.camera = new Camera(0.1f, 0.01f, 0.0f, 0.0f, 12.0f);
   }
 
   private void setupTextures() {
@@ -228,6 +227,7 @@ public class Code extends JFrame implements  GLEventListener, KeyListener {
     noiseTexture = Utils.loadTexture("MyTexture.png");
     metalTexture = Utils.loadTexture("grunge-scratched-brushed-metal-background.jpg");
     rustyTexture = Utils.loadTexture("empty-brown-rusty-stone-metal-surface-texture.jpg");
+    brickTexture = Utils.loadTexture("brick1.jpg");
     // setup pyramid texture coordinates
 
     // define
@@ -298,7 +298,7 @@ public class Code extends JFrame implements  GLEventListener, KeyListener {
     gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[ROD_TEXTURE_VBO]);
     FloatBuffer rodTexBuf = Buffers.newDirectFloatBuffer(rodTextureCoordinates);
     gl.glBufferData(GL_ARRAY_BUFFER, rodTexBuf.limit()*4, rodTexBuf, GL_STATIC_DRAW);
-    // setup icosahedron texture coordimates
+    // setup shuttle  texture coordinates
     gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[SHUTTLE_TEXTURE_VBO]);
     FloatBuffer icoTexBuf = Buffers.newDirectFloatBuffer(shuttle.getTexCoords().length * 2);
     unpack(shuttle.getTexCoords(), icoTexBuf);
@@ -381,6 +381,24 @@ public class Code extends JFrame implements  GLEventListener, KeyListener {
             0.25f, -2.0f, -0.25f,
             0.25f, -2.0f,  0.25f
     };
+    int numObjVertices = shuttle.getNumVertices();
+    Vector3f[] vertices = shuttle.getVertices();
+    Vector2f[] texCoords = shuttle.getTexCoords();
+    Vector3f[] normals = shuttle.getNormals();
+    float[] pvalues = new float[numObjVertices * 3];
+    float[] tvalues = new float[numObjVertices * 2];
+    float[] nvalues = new float[numObjVertices * 3];
+
+    for (int i = 0; i < numObjVertices; i++){
+      pvalues[i*3] = (float) (vertices[i]).x();
+      pvalues[i*3+1] = (float) (vertices[i]).y();
+      pvalues[i*3+2] = (float) (vertices[i]).z();
+      tvalues[i*2] = (float) (texCoords[i]).x();
+      tvalues[i*2+1] = (float) (texCoords[i]).y();
+      nvalues[i*3] = (float) (normals[i]).x();
+      nvalues[i*3+1] = (float) (normals[i]).y();
+      nvalues[i*3+2] = (float) (normals[i]).z();
+    }
 
     gl.glGenVertexArrays(vao.length, vao, 0);
     gl.glBindVertexArray(vao[0]);
@@ -402,12 +420,19 @@ public class Code extends JFrame implements  GLEventListener, KeyListener {
     FloatBuffer rodVertBuf = Buffers.newDirectFloatBuffer(rodPositions);
     gl.glBufferData(GL_ARRAY_BUFFER, rodVertBuf.limit()*4, rodVertBuf, GL_STATIC_DRAW);
 
-    // bind and feed in icosahedron positions
+    // bind and feed in shuttle positions
+    // VBO for vertex locations
     gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[SHUTTLE_VERTEX_VBO]);
-    FloatBuffer icoVertBuf = Buffers.newDirectFloatBuffer(shuttle.getNumVertices() * 3);
-    unpack(shuttle.getVertices(), icoVertBuf);
-    icoVertBuf.flip();
-    gl.glBufferData(GL_ARRAY_BUFFER, icoVertBuf.limit()*4, icoVertBuf, GL_STATIC_DRAW);
+    FloatBuffer vertBuf = Buffers.newDirectFloatBuffer(pvalues);
+    gl.glBufferData(GL_ARRAY_BUFFER, vertBuf.limit()*4, vertBuf, GL_STATIC_DRAW);
+// VBO for texture coordinates
+    gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[SHUTTLE_TEXTURE_VBO]);
+    FloatBuffer texBuf = Buffers.newDirectFloatBuffer(tvalues);
+    gl.glBufferData(GL_ARRAY_BUFFER, texBuf.limit()*4, texBuf, GL_STATIC_DRAW);
+// VBO for normal vectors
+    gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[SHUTTLE_NORMALS_VBO]);
+    FloatBuffer norBuf = Buffers.newDirectFloatBuffer(nvalues);
+    gl.glBufferData(GL_ARRAY_BUFFER, norBuf.limit()*4,norBuf, GL_STATIC_DRAW);
 
   }
   private void unpack(Vector3f[] vectorArray, FloatBuffer buffer){

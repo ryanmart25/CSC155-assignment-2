@@ -100,12 +100,12 @@ public class Camera {
 
     // functions for turning the camera
     public void turnRight(){
-        this.U.rotateAxis(rotationStep, this.V.x(), this.V.y(), this.V.z());
-        this.N.rotateAxis(rotationStep, this.V.x(), this.V.y(), this.V.z());
+        this.U.rotateAxis(-1.0f * rotationStep, this.V.x(), this.V.y(), this.V.z());
+        this.N.rotateAxis(-1.0f *rotationStep, this.V.x(), this.V.y(), this.V.z());
     }
     public void turnLeft(){
-        this.U.rotateAxis(-1.0f * rotationStep, this.V.x(), this.V.y(), this.V.z());
-        this.N.rotateAxis(-1.0f * rotationStep, this.V.x(), this.V.y(), this.V.z());
+        this.U.rotateAxis( rotationStep, this.V.x(), this.V.y(), this.V.z());
+        this.N.rotateAxis(rotationStep, this.V.x(), this.V.y(), this.V.z());
     }
     public void turnUp(){
         this.V.rotateAxis(rotationStep, this.U.x(), this.U.y(), this.U.z());
